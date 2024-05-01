@@ -1,21 +1,8 @@
 # Resellbiz
 
-**TODO: Add description**
+[![Build Status](https://github.com/dymmer-code/resellbiz/actions/workflows/elixir.yml/badge.svg)](https://github.com/dymmer-code/resellbiz/actions/workflows/elixir.yml)
+[![License: LGPL 2.1](https://img.shields.io/github/license/dymmer-code/resellbiz.svg)](https://raw.githubusercontent.com/dymmer-code/resellbiz/main/COPYING)
 
-## Installation
+Resellbiz API client for Elixir.
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `resellbiz` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:resellbiz, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/resellbiz>.
-
+TBD
