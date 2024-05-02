@@ -12,6 +12,11 @@ defmodule Resellbiz.Contact do
 
   plug(Resellbiz.Throttle)
 
+  plug(Tesla.Middleware.Logger,
+    format: "$method /api/domains$url?$query ===> $status / time=$time",
+    log_level: :debug
+  )
+
   plug(Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/contacts/")
 
   plug(Tesla.Middleware.Query,

@@ -10,6 +10,11 @@ defmodule Resellbiz.Product do
 
   plug(Resellbiz.Throttle)
 
+  plug(Tesla.Middleware.Logger,
+    format: "$method $url?$query ===> $status / time=$time",
+    log_level: :debug
+  )
+
   plug(
     Tesla.Middleware.BaseUrl,
     Application.get_env(:resellbiz, :url) <> "/api/products/"
