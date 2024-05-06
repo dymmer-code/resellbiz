@@ -86,16 +86,26 @@ defmodule Resellbiz.Domain do
     end
   end
 
-  def transfer(_name, _authcode, _years, _ns, contacts)
+  @doc """
+  Perform the transfer of a domain. It requires the following parameters:
+
+  - `domain_name` is the name of the domain to be transferred.
+  - `authcode` is the code needed for most of the domains to be transferred.
+  - `years` is the number of years we add for domain transfer.
+  - `ns` is the list of name servers to use.
+  - `contacts` is the list of contacts to be in use as owner, admin, tech,
+    and billing.
+  """
+  def transfer(_domain_name, _authcode, _years, _ns, contacts)
       when not is_list(contacts) or length(contacts) != 4 do
     {:error, :invalid_contacts}
   end
 
-  def transfer(name, authcode, ns, [owner, admin, tech, billing] = _contacts) do
-    with [_base_domain, tld] <- String.split(name, ".", parts: 2),
+  def transfer(domain_name, authcode, ns, [owner, admin, tech, billing] = _contacts) do
+    with [_base_domain, tld] <- String.split(domain_name, ".", parts: 2),
          {:ok, details} <- ProductCache.get_details_by_tld(tld) do
       %{
-        name: name,
+        name: domain_name,
         authcode: authcode,
         ns: ns,
         customer_id: Application.get_env(:resellbiz, :customer_id),
@@ -120,6 +130,98 @@ defmodule Resellbiz.Domain do
   defp do_transfer(query_params) do
     case post("/transfer.json", "", query: query_params) do
       {:ok, %_{status: 200, body: %{"actionstatus" => _}} = response} ->
+        {:ok, Action.normalize(response.body)}
+
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Lock the domain for ensuring it's not been able to be transferred
+  or theft.
+  """
+  def lock(domain_name) when is_binary(domain_name) do
+    with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
+      lock(order_id)
+    end
+  end
+
+  def lock(order_id) when is_integer(order_id) do
+    do_lock("order-id": order_id)
+  end
+
+  defp do_lock(query_params) when is_list(query_params) do
+    case post("/enable-theft-protection.json", "", query: query_params) do
+      {:ok, %_{status: 200, body: %{"eaqid" => _}} = response} ->
+        {:ok, Action.normalize(response.body)}
+
+      {:ok, %_{body: %{"status" => "Failed"}}} ->
+        {:error, "Domain not found or unknown error happened."}
+
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Unlock the domain to let us transfer it to a new provider.
+  """
+  def unlock(domain_name) when is_binary(domain_name) do
+    with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
+      unlock(order_id)
+    end
+  end
+
+  def unlock(order_id) when is_integer(order_id) do
+    do_unlock("order-id": order_id)
+  end
+
+  defp do_unlock(query_params) when is_list(query_params) do
+    case post("/disable-theft-protection.json", "", query: query_params) do
+      {:ok, %_{status: 200, body: %{"eaqid" => _}} = response} ->
+        {:ok, Action.normalize(response.body)}
+
+      {:ok, %_{body: %{"status" => "Failed"}}} ->
+        {:error, "Domain not found or unknown error happened."}
+
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  def modify_ns(domain_name, ns) when is_binary(domain_name) and is_list(ns) do
+    with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
+      modify_ns(order_id, ns)
+    end
+  end
+
+  def modify_ns(order_id, ns_list) when is_integer(order_id) and is_list(ns_list) do
+    ns = for nserver <- ns_list, do: {:ns, nserver}
+    modify_ns([{:"order-id", order_id} | ns])
+  end
+
+  defp modify_ns(query_params) do
+    case post("/modify-ns.json", "", query: query_params) do
+      {:ok, %_{status: 200, body: %{"eaqid" => _}} = response} ->
         {:ok, Action.normalize(response.body)}
 
       {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
@@ -197,7 +299,10 @@ defmodule Resellbiz.Domain do
   end
 
   @doc """
-  Perform the renovation of the domain.
+  Perform the renovation of the domain. It requires the domain_name, the number
+  of years, and the expiration date and time for the domain.
+
+  Note that using the `info/1` you can retrieve the `expiration_datetime`.
   """
   def renew(domain_name, years, expiration_datetime) when is_binary(domain_name) do
     with [_base_domain, tld] <- String.split(domain_name, ".", parts: 2),
@@ -361,6 +466,10 @@ defmodule Resellbiz.Domain do
     end
   end
 
+  @doc """
+  Cancel the transfer of a domain. It is possible to be done if the
+  transfer is still pending.
+  """
   def cancel_transfer(domain_name) when is_binary(domain_name) do
     with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
       cancel_transfer(order_id)
@@ -408,6 +517,10 @@ defmodule Resellbiz.Domain do
     end
   end
 
+  @doc """
+  Check if the transfer is still valid. We can check a pending transfer
+  to get the information about if the transfer is valid.
+  """
   def transfer_valid?(domain_name) when is_binary(domain_name) do
     case get("/validate-transfer.json", query: ["domain-name": domain_name]) do
       {:ok, %_{status: 200, body: result}} when is_boolean(result) ->

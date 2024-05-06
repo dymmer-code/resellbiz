@@ -17,7 +17,10 @@ defmodule Resellbiz.Domain.Action do
     add_new_domain: "AddNewDomain",
     add_transfer_domain: "AddTransferDomain",
     renew_domain: "RenewDomain",
-    restore_domain: "RestoreDomain"
+    restore_domain: "RestoreDomain",
+    modify_ns: "ModNS",
+    lock: "Lock",
+    unlock: "Unlock"
   ]
 
   @statuses [
@@ -43,6 +46,7 @@ defmodule Resellbiz.Domain.Action do
     field(:eaqid, :integer)
     field(:entity_id, :integer, source: :entityid)
     field(:status, Ecto.Enum, values: @statuses, source: :status)
+    field(:error, :string)
   end
 
   @doc false
