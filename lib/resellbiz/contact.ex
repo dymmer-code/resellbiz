@@ -6,6 +6,7 @@ defmodule Resellbiz.Contact do
   """
   use Tesla, only: [:get, :post], docs: false
   require Logger
+  alias Resellbiz.Contact.Action
   alias Resellbiz.Contact.Add
   alias Resellbiz.Contact.Details
   alias Resellbiz.Contact.Search
@@ -96,6 +97,25 @@ defmodule Resellbiz.Contact do
         {:error, "Server error"}
 
       %{"status" => "ERROR", "message" => message} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Delete a contact given the contact ID.
+  """
+  def delete(contact_id) when is_integer(contact_id) do
+    case post("/delete.json", "", query: ["contact-id": contact_id]) do
+      {:ok, %_{status: 200, body: %{"eaqid" => _}} = response} ->
+        {:ok, Action.normalize(response.body)}
+
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
         {:error, message}
 
       {:error, _} = error ->
