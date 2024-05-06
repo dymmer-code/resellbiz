@@ -3,7 +3,7 @@ defmodule Resellbiz.Customer do
   The module is responsible for interacting with the Resellbiz API to get
   information about customers.
   """
-  use Tesla
+  use Tesla, only: [:get, :post], docs: false
   require Logger
   alias Resellbiz.Customer.Details
   alias Resellbiz.Customer.Search

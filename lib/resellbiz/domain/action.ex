@@ -15,7 +15,9 @@ defmodule Resellbiz.Domain.Action do
 
   @action_types [
     add_new_domain: "AddNewDomain",
-    add_transfer_domain: "AddTransferDomain"
+    add_transfer_domain: "AddTransferDomain",
+    renew_domain: "RenewDomain",
+    restore_domain: "RestoreDomain"
   ]
 
   @statuses [

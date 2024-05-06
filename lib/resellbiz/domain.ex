@@ -8,7 +8,9 @@ defmodule Resellbiz.Domain do
   require Logger
   alias Resellbiz.Domain.Action
   alias Resellbiz.Domain.Check
+  alias Resellbiz.Domain.Info
   alias Resellbiz.Domain.Register
+  alias Resellbiz.Domain.Renew
   alias Resellbiz.Domain.Transfer
   alias Resellbiz.Product.Cache, as: ProductCache
 
@@ -195,6 +197,44 @@ defmodule Resellbiz.Domain do
   end
 
   @doc """
+  Perform the renovation of the domain.
+  """
+  def renew(domain_name, years, expiration_datetime) when is_binary(domain_name) do
+    with [_base_domain, tld] <- String.split(domain_name, ".", parts: 2),
+         {:ok, tld_details} <- ProductCache.get_details_by_tld(tld),
+         {:ok, order_id} <- get_order_id_by_domain(domain_name) do
+      renew(order_id, years, expiration_datetime, tld_details)
+    else
+      {:error, _} = error -> error
+      _ -> {:error, :invalid_domain_name}
+    end
+  end
+
+  defp renew(order_id, years, expiration_datetime, tld_details) do
+    params =
+      %{
+        order_id: order_id,
+        years: years,
+        expiration_datetime: expiration_datetime
+      }
+
+    with {:ok, query_params} <- Renew.changeset(params, tld_details),
+         {:ok, %_{status: 200, body: %{"actionstatus" => _}} = response} <-
+           post("/renew.json", "", query: query_params) do
+      {:ok, Action.normalize(response.body)}
+    else
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
   Search domains registered or transferred by the reseller. The search results
   are paginated and the default number of records per page is 25. The page
   number is 0-based.
@@ -273,6 +313,28 @@ defmodule Resellbiz.Domain do
   end
 
   @doc """
+  The information retrieved could be consulted in `Resellbiz.Domain.Info`.
+  The possible options are the following ones:
+
+  - `All` retrieve all of the options.
+  - `OrderDetails` it gets only the information relative to the domain.
+  - `ContactIds` it gets only the information about the contacts.
+  - `RegistrantContactDetails` only the information related to the owner.
+  - `AdminContactDetails` only the information related to the admin.
+  - `TechContactDetails` only the information related to the tech contact.
+  - `BillingContactDetails` only the information related to the billing contact.
+  - `NsDetails` retrieve information about the name servers.
+  - `DomainStatus` retrieve only the domain status.
+  - `DNSSECDetails` only the information about DNSSEC.
+  """
+  def info(domain_name, options \\ "All") when is_binary(domain_name) and is_binary(options) do
+    case get("/details-by-name.json", query: ["domain-name": domain_name, options: options]) do
+      {:ok, %_{status: 200, body: info}} -> {:ok, Info.normalize(info)}
+      {:error, _} = error -> error
+    end
+  end
+
+  @doc """
   Delete a registered domain. The order_id is the entity ID returned by the
   `register` function. If you need an order_id for a domain, you can use the
   `get_order_id_by_domain` function.
@@ -315,6 +377,49 @@ defmodule Resellbiz.Domain do
 
       {:error, _} = error ->
         error
+    end
+  end
+
+  @doc """
+  When a transfer is requesting a valid authcode it's possible to continue
+  the transfer for certain domains so, we can use this function for providing
+  to a transfer process the correct authcode.
+  """
+  def submit_authcode(domain_name, authcode) when is_binary(domain_name) do
+    with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
+      submit_authcode(order_id, authcode)
+    end
+  end
+
+  def submit_authcode(order_id, authcode) when is_integer(order_id) do
+    submit_authcode("order-id": order_id, "auth-code": authcode)
+  end
+
+  defp submit_authcode(query_params) when is_list(query_params) do
+    case post("/transfer/submit-auth-code.json", "", query: query_params) do
+      {:ok, %_{status: 200, body: "Success"}} ->
+        :ok
+
+      {:ok, %_{body: %{"Error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  def transfer_valid?(domain_name) when is_binary(domain_name) do
+    case get("/validate-transfer.json", query: ["domain-name": domain_name]) do
+      {:ok, %_{status: 200, body: result}} when is_boolean(result) ->
+        result
+
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        Logger.error("transfer isn't placed: #{inspect(message)}")
+        false
+
+      {:error, reason} ->
+        Logger.error("cannot validate transfer for #{domain_name}: #{inspect(reason)}")
+        false
     end
   end
 end

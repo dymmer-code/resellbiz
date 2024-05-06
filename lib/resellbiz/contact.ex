@@ -4,7 +4,7 @@ defmodule Resellbiz.Contact do
   reseller's customers. It provides functions to search, add, and get details
   of a contact.
   """
-  use Tesla
+  use Tesla, only: [:get, :post], docs: false
   require Logger
   alias Resellbiz.Contact.Add
   alias Resellbiz.Contact.Details

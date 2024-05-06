@@ -3,8 +3,9 @@ defmodule Resellbiz.Product do
   The product module is responsible for fetching the product details and prices
   from the Resellbiz API.
   """
-  use Tesla
+  use Tesla, only: [:get, :post], docs: false
   require Logger
+  alias Resellbiz.Product.Cache
   alias Resellbiz.Product.Details
   alias Resellbiz.Product.Prices
 
@@ -63,4 +64,18 @@ defmodule Resellbiz.Product do
 
   defp remove_index({key, %{"1" => value}}), do: {key, value}
   defp remove_index({"id", value}), do: {"id", value}
+
+  @doc """
+  Perform a local search of the details requested for the TLD.
+  This function uses `Resellbiz.Product.Cache` for ensuring the data is always
+  available locally.
+  """
+  defdelegate get_details_by_tld(tld), to: Cache
+
+  @doc """
+  Performs a local search of the prices requested for the TLD.
+  This function uses `Resellbiz.Product.Cache` for ensuring the data is always
+  available locally.
+  """
+  defdelegate get_prices_by_tld(tld), to: Cache
 end
