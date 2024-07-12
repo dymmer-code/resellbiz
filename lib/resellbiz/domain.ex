@@ -16,6 +16,8 @@ defmodule Resellbiz.Domain do
 
   @default_no_of_records 25
 
+  adapter({Tesla.Adapter.Finch, name: Resellbiz.Finch})
+
   plug(Resellbiz.Throttle)
 
   plug(Tesla.Middleware.Logger,

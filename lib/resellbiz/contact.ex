@@ -11,6 +11,8 @@ defmodule Resellbiz.Contact do
   alias Resellbiz.Contact.Details
   alias Resellbiz.Contact.Search
 
+  adapter({Tesla.Adapter.Finch, name: Resellbiz.Finch})
+
   plug(Resellbiz.Throttle)
 
   plug(Tesla.Middleware.Logger,

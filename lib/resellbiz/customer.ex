@@ -8,6 +8,8 @@ defmodule Resellbiz.Customer do
   alias Resellbiz.Customer.Details
   alias Resellbiz.Customer.Search
 
+  adapter({Tesla.Adapter.Finch, name: Resellbiz.Finch})
+
   plug(Resellbiz.Throttle)
 
   plug(Tesla.Middleware.Logger,

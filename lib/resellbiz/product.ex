@@ -9,6 +9,8 @@ defmodule Resellbiz.Product do
   alias Resellbiz.Product.Details
   alias Resellbiz.Product.Prices
 
+  adapter({Tesla.Adapter.Finch, name: Resellbiz.Finch})
+
   plug(Resellbiz.Throttle)
 
   plug(Tesla.Middleware.Logger,

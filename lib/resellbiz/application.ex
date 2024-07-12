@@ -9,6 +9,7 @@ defmodule Resellbiz.Application do
   @impl Application
   def start(_start_type, _start_args) do
     children = [
+      {Finch, name: Resellbiz.Finch},
       Resellbiz.Product.Cache
     ]
 
