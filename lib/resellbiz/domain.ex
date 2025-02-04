@@ -437,6 +437,7 @@ defmodule Resellbiz.Domain do
   def info(domain_name, options \\ "All") when is_binary(domain_name) and is_binary(options) do
     case get("/details-by-name.json", query: ["domain-name": domain_name, options: options]) do
       {:ok, %_{status: 200, body: info}} -> {:ok, Info.normalize(info)}
+      {:ok, %_{body: error}} -> {:error, error["message"]}
       {:error, _} = error -> error
     end
   end

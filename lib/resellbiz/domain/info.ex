@@ -111,7 +111,9 @@ defmodule Resellbiz.Domain.Info do
     field(:product_key, :string, source: :productkey)
 
     embeds_one :gdpr, Gdpr do
-      @moduledoc false
+      @moduledoc """
+      GDPR information to know if the domain is elegible and if that's enabled.
+      """
       field(:elegible?, :boolean, source: :elegible)
       field(:enabled?, :boolean, source: :enabled)
     end
