@@ -137,7 +137,7 @@ defmodule Resellbiz.Domain.Info do
     field(:ns4, :string)
     field(:ns5, :string)
     field(:child_ns, :map, source: :cns)
-    field(:domain_secret, :string, source: :domainsecret)
+    field(:domain_secret, :string, source: :domsecret)
     field(:suspended_due_to_expiry?, :boolean, source: :isOrderSuspendedUponExpiry)
     field(:suspended_by_parent_reseller?, :boolean, source: :orderSuspendedByParent)
     field(:privacy_protected_allowed?, :boolean, source: :privacyprotectedallowed)
