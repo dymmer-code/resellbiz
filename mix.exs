@@ -32,7 +32,7 @@ defmodule Resellbiz.MixProject do
       {:money, "~> 1.12"},
       {:typed_ecto_schema, "~> 0.4"},
       {:ecto, "~> 3.9"},
-      {:hammer, "~> 6.2"},
+      {:hammer, "~> 7.0"},
       {:bypass, "~> 2.1", only: :test},
 
       # only for dev

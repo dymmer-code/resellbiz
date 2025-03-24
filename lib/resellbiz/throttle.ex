@@ -7,6 +7,8 @@ defmodule Resellbiz.Throttle do
   @behaviour Tesla.Middleware
   require Logger
 
+  use Hammer, backend: Hammer.Atomic
+
   @throttle_tries Application.compile_env(:resellbiz, :tries, 3)
   @throttle_time_to_wait Application.compile_env(
                            :resellbiz,
@@ -23,7 +25,7 @@ defmodule Resellbiz.Throttle do
   end
 
   defp check_throttle(tries) do
-    case Hammer.check_rate("resellbiz:global", :timer.minutes(1), @times) do
+    case hit("resellbiz:global", :timer.minutes(1), @times) do
       {:allow, _count} ->
         :ok
 

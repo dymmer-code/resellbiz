@@ -10,6 +10,7 @@ defmodule Resellbiz.Application do
   def start(_start_type, _start_args) do
     children = [
       {Finch, name: Resellbiz.Finch},
+      {Resellbiz.Throttle, [clean_period: :timer.minutes(10)]},
       Resellbiz.Product.Cache
     ]
 

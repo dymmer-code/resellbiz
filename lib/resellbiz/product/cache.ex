@@ -24,8 +24,10 @@ defmodule Resellbiz.Product.Cache do
 
   @impl GenServer
   def init([]) do
+    state = %{details: %{}, prices: %{}}
+
     if Application.get_env(:resellbiz, :auto_refresh, true) do
-      {:ok, %{timestamp: NaiveDateTime.utc_now()}, {:continue, :refresh}}
+      {:ok, Map.put(state, :timestamp, NaiveDateTime.utc_now()), {:continue, :refresh}}
     else
       {:ok, %{}}
     end
