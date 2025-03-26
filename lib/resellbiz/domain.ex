@@ -70,6 +70,31 @@ defmodule Resellbiz.Domain do
   end
 
   @doc """
+  Returns a list of Aftermarket Premium domain names based on the specified keyword.
+  This method only returns names available on the secondary market, and not those
+  premium names that are offered directly by any Registry for new registration.
+
+  Parameters:
+  - `key-word` (required): word or phrase (without spaces) for which premium search
+    is requested.
+  - `tlds` (required): domain name extensions (TLDs) you want to search in.
+  - `price-high`: max price for which domain names must be suggested.
+  - `price-low`: min price for which domain names must be suggested.
+  - `no-of-results`: number of results to be returned.
+  """
+  def search_premium(query) when is_list(query) do
+    case get("/premium/available.json", query: query) do
+      {:ok, response} ->
+        Map.new(response.body, fn {domain, value} ->
+          {domain, Decimal.new(value)}
+        end)
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
   Check if a domain is available for registration.
   """
   def available?(domain) when is_binary(domain) do

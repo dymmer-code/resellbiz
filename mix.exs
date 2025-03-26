@@ -29,7 +29,7 @@ defmodule Resellbiz.MixProject do
       {:tesla, "~> 1.9"},
       {:finch, "~> 0.17"},
       {:countries, "~> 1.6"},
-      {:money, "~> 1.12"},
+      {:decimal, "~> 2.3"},
       {:typed_ecto_schema, "~> 0.4"},
       {:ecto, "~> 3.9"},
       {:hammer, "~> 7.0"},
