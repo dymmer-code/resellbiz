@@ -15,14 +15,11 @@ defmodule Resellbiz.Customer do
     [
       Resellbiz.Throttle,
       {Tesla.Middleware.Logger,
-        format: "$method /api/customers$url?$query ===> $status / time=$time",
-        log_level: :debug
-      },
+       format: "$method /api/customers$url?$query ===> $status / time=$time", log_level: :debug},
       {Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/customers"},
       {Tesla.Middleware.Query,
-        "auth-userid": Application.get_env(:resellbiz, :reseller_id),
-        "api-key": Application.get_env(:resellbiz, :api_key)
-      },
+       "auth-userid": Application.get_env(:resellbiz, :reseller_id),
+       "api-key": Application.get_env(:resellbiz, :api_key)},
       Tesla.Middleware.JSON
     ]
   end
