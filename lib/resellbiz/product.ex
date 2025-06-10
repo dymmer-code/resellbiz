@@ -3,32 +3,36 @@ defmodule Resellbiz.Product do
   The product module is responsible for fetching the product details and prices
   from the Resellbiz API.
   """
-  use Tesla, only: [:get, :post], docs: false
   require Logger
   alias Resellbiz.Product.Cache
   alias Resellbiz.Product.Details
   alias Resellbiz.Product.Prices
 
-  adapter({Tesla.Adapter.Finch, name: Resellbiz.Finch})
+  defp client do
+    Tesla.client(middleware(), adapter())
+  end
 
-  plug(Resellbiz.Throttle)
+  defp middleware do
+    [
+      Resellbiz.Throttle,
+      {Tesla.Middleware.Logger,
+        format: "$method /api/products$url?$query ===> $status / time=$time",
+        log_level: :debug
+      },
+      {Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/products"},
+      {Tesla.Middleware.Query,
+        "auth-userid": Application.get_env(:resellbiz, :reseller_id),
+        "api-key": Application.get_env(:resellbiz, :api_key)
+      },
+      Tesla.Middleware.JSON
+    ]
+  end
 
-  plug(Tesla.Middleware.Logger,
-    format: "$method $url?$query ===> $status / time=$time",
-    log_level: :debug
-  )
+  defp adapter do
+    {Tesla.Adapter.Finch, name: Resellbiz.Finch}
+  end
 
-  plug(
-    Tesla.Middleware.BaseUrl,
-    Application.get_env(:resellbiz, :url) <> "/api/products/"
-  )
-
-  plug(Tesla.Middleware.Query,
-    "auth-userid": Application.get_env(:resellbiz, :reseller_id),
-    "api-key": Application.get_env(:resellbiz, :api_key)
-  )
-
-  plug(Tesla.Middleware.JSON)
+  defp get(uri), do: Tesla.get(client(), uri)
 
   @doc """
   Fetches the product details from the Resellbiz API.

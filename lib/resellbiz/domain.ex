@@ -4,7 +4,6 @@ defmodule Resellbiz.Domain do
   Resellbiz API to check the status of a domain, register a domain,
   transfer a domain, delete a domain, and retrieve the price of a domain.
   """
-  use Tesla, only: [:get, :post], docs: false
   require Logger
   alias Resellbiz.Domain.Action
   alias Resellbiz.Domain.Check
@@ -16,23 +15,32 @@ defmodule Resellbiz.Domain do
 
   @default_no_of_records 25
 
-  adapter({Tesla.Adapter.Finch, name: Resellbiz.Finch})
+  defp client do
+    Tesla.client(middleware(), adapter())
+  end
 
-  plug(Resellbiz.Throttle)
+  defp middleware do
+    [
+      Resellbiz.Throttle,
+      {Tesla.Middleware.Logger,
+        format: "$method /api/domains$url?$query ===> $status / time=$time",
+        log_level: :debug
+      },
+      {Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/domains"},
+      {Tesla.Middleware.Query,
+        "auth-userid": Application.get_env(:resellbiz, :reseller_id),
+        "api-key": Application.get_env(:resellbiz, :api_key)
+      },
+      Tesla.Middleware.JSON
+    ]
+  end
 
-  plug(Tesla.Middleware.Logger,
-    format: "$method /api/domains$url?$query ===> $status / time=$time",
-    log_level: :debug
-  )
+  defp adapter do
+    {Tesla.Adapter.Finch, name: Resellbiz.Finch}
+  end
 
-  plug(Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/domains/")
-
-  plug(Tesla.Middleware.Query,
-    "auth-userid": Application.get_env(:resellbiz, :reseller_id),
-    "api-key": Application.get_env(:resellbiz, :api_key)
-  )
-
-  plug(Tesla.Middleware.JSON)
+  defp get(uri, opts), do: Tesla.get(client(), uri, opts)
+  defp post(uri, body, opts), do: Tesla.post(client(), uri, body, opts)
 
   defp domain_to_query(domain) do
     [basename, tld] = String.split(domain, ".", parts: 2)

@@ -4,30 +4,38 @@ defmodule Resellbiz.Contact do
   reseller's customers. It provides functions to search, add, and get details
   of a contact.
   """
-  use Tesla, only: [:get, :post], docs: false
   require Logger
   alias Resellbiz.Contact.Action
   alias Resellbiz.Contact.Add
   alias Resellbiz.Contact.Details
   alias Resellbiz.Contact.Search
 
-  adapter({Tesla.Adapter.Finch, name: Resellbiz.Finch})
+  defp client do
+    Tesla.client(middleware(), adapter())
+  end
 
-  plug(Resellbiz.Throttle)
+  defp middleware do
+    [
+      Resellbiz.Throttle,
+      {Tesla.Middleware.Logger,
+        format: "$method /api/contacts$url?$query ===> $status / time=$time",
+        log_level: :debug
+      },
+      {Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/contacts"},
+      {Tesla.Middleware.Query,
+        "auth-userid": Application.get_env(:resellbiz, :reseller_id),
+        "api-key": Application.get_env(:resellbiz, :api_key)
+      },
+      Tesla.Middleware.JSON
+    ]
+  end
 
-  plug(Tesla.Middleware.Logger,
-    format: "$method /api/domains$url?$query ===> $status / time=$time",
-    log_level: :debug
-  )
+  defp adapter do
+    {Tesla.Adapter.Finch, name: Resellbiz.Finch}
+  end
 
-  plug(Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/contacts/")
-
-  plug(Tesla.Middleware.Query,
-    "auth-userid": Application.get_env(:resellbiz, :reseller_id),
-    "api-key": Application.get_env(:resellbiz, :api_key)
-  )
-
-  plug(Tesla.Middleware.JSON)
+  defp get(uri, opts), do: Tesla.get(client(), uri, opts)
+  defp post(uri, body, opts), do: Tesla.post(client(), uri, body, opts)
 
   @default_no_of_records 25
 
