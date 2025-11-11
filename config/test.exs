@@ -5,4 +5,5 @@ config :resellbiz,
   url: "http://localhost",
   reseller_id: "12345678",
   api_key: "abcdefg",
-  customer_id: "1234567890"
+  customer_id: "1234567890",
+  throttle_times_per_minute: 1_000

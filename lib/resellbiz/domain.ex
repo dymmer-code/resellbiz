@@ -10,6 +10,7 @@ defmodule Resellbiz.Domain do
   alias Resellbiz.Domain.Info
   alias Resellbiz.Domain.Register
   alias Resellbiz.Domain.Renew
+  alias Resellbiz.Domain.Restore
   alias Resellbiz.Domain.Transfer
   alias Resellbiz.Product.Cache, as: ProductCache
 
@@ -358,6 +359,28 @@ defmodule Resellbiz.Domain do
     with {:ok, query_params} <- Renew.changeset(params, tld_details),
          {:ok, %_{status: 200, body: %{"actionstatus" => _}} = response} <-
            post("/renew.json", "", query: query_params) do
+      {:ok, Action.normalize(response.body)}
+    else
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Restore a domain. It could be done to domains in TLDs where this action
+  is supported and during the quarantine time.
+  """
+  def restore(domain_name) do
+    with {:ok, order_id} <- get_order_id_by_domain(domain_name),
+         {:ok, query_params} <- Restore.changeset(%{order_id: order_id}),
+         {:ok, %_{status: 200, body: %{"actionstatus" => _}} = response} <-
+           post("/restore.json", "", query: query_params) do
       {:ok, Action.normalize(response.body)}
     else
       {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->

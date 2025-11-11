@@ -47,6 +47,10 @@ defmodule Resellbiz.Domain.Action do
     field(:entity_id, :integer, source: :entityid)
     field(:status, Ecto.Enum, values: @statuses, source: :status)
     field(:error, :string)
+    field(:invoice_id, :string, source: :invoiceid)
+    field(:selling_currency, :string, source: :sellingcurrencysymbol)
+    field(:selling_price, :string, source: :sellingamount)
+    field(:customer_id, :string, source: :customerid)
   end
 
   @doc false
