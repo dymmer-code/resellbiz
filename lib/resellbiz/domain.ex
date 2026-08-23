@@ -16,29 +16,20 @@ defmodule Resellbiz.Domain do
 
   @default_no_of_records 25
 
-  defp client do
-    Tesla.client(middleware(), adapter())
-  end
+  defp client, do: Resellbiz.Client.new("/api/domains")
 
-  defp middleware do
-    [
-      Resellbiz.Throttle,
-      {Tesla.Middleware.Logger,
-       format: "$method /api/domains$url?$query ===> $status / time=$time", log_level: :debug},
-      {Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/domains"},
-      {Tesla.Middleware.Query,
-       "auth-userid": Application.get_env(:resellbiz, :reseller_id),
-       "api-key": Application.get_env(:resellbiz, :api_key)},
-      Tesla.Middleware.JSON
-    ]
-  end
+  defp get(uri, opts), do: Req.get(client(), request_opts(uri, opts))
 
-  defp adapter do
-    {Tesla.Adapter.Finch, name: Resellbiz.Finch}
-  end
+  defp post(uri, body, opts),
+    do: Req.post(client(), Keyword.put(request_opts(uri, opts), :body, body))
 
-  defp get(uri, opts), do: Tesla.get(client(), uri, opts)
-  defp post(uri, body, opts), do: Tesla.post(client(), uri, body, opts)
+  # Every call site in this module passes its extra query params as `query:`
+  # (the Tesla-era name) -- translated here to Req's `params:` option so none
+  # of them needed to change when this module moved off Tesla.
+  defp request_opts(uri, opts) do
+    {query, opts} = Keyword.pop(opts, :query, [])
+    Keyword.merge(opts, url: uri, params: query)
+  end
 
   defp domain_to_query(domain) do
     [basename, tld] = String.split(domain, ".", parts: 2)

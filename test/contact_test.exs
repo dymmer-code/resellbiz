@@ -2,8 +2,10 @@ defmodule Resellbiz.ContactTest do
   use Resellbiz.Case
 
   describe "search" do
-    test "returns a list of contacts", %{bypass: bypass} do
-      Bypass.expect_once(bypass, "GET", "/api/contacts/search.json", fn conn ->
+    test "returns a list of contacts" do
+      stub(fn conn ->
+        assert {conn.method, conn.request_path} == {"GET", "/api/contacts/search.json"}
+
         assert conn.query_params == %{
                  "auth-userid" => "12345678",
                  "api-key" => "abcdefg",
@@ -108,8 +110,10 @@ defmodule Resellbiz.ContactTest do
   end
 
   describe "add" do
-    test "valid Contact", %{bypass: bypass} do
-      Bypass.expect_once(bypass, "POST", "/api/contacts/add.json", fn conn ->
+    test "valid Contact" do
+      stub(fn conn ->
+        assert {conn.method, conn.request_path} == {"POST", "/api/contacts/add.json"}
+
         assert conn.query_params == %{
                  "auth-userid" => "12345678",
                  "api-key" => "abcdefg",
@@ -142,8 +146,10 @@ defmodule Resellbiz.ContactTest do
              }) == {:ok, 12_345_678}
     end
 
-    test "valid EsContact", %{bypass: bypass} do
-      Bypass.expect_once(bypass, "POST", "/api/contacts/add.json", fn conn ->
+    test "valid EsContact" do
+      stub(fn conn ->
+        assert {conn.method, conn.request_path} == {"POST", "/api/contacts/add.json"}
+
         assert conn.query_params == %{
                  "auth-userid" => "12345678",
                  "api-key" => "abcdefg",

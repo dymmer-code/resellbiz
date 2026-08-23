@@ -3,8 +3,10 @@ defmodule Resellbiz.ProductTest do
   alias Resellbiz.Product
 
   describe "list product details" do
-    test "get valid details", %{bypass: bypass} do
-      Bypass.expect_once(bypass, "GET", "/api/products/details.json", fn conn ->
+    test "get valid details" do
+      stub(fn conn ->
+        assert {conn.method, conn.request_path} == {"GET", "/api/products/details.json"}
+
         assert conn.query_params == %{
                  "auth-userid" => "12345678",
                  "api-key" => "abcdefg"

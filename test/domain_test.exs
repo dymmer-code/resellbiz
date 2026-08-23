@@ -2,34 +2,36 @@ defmodule Resellbiz.DomainTest do
   use Resellbiz.Case
 
   describe "restore" do
-    test "correctly", %{bypass: bypass} do
+    test "correctly" do
       order_id = 84_698_661
 
-      Bypass.expect(bypass, "GET", "/api/domains/orderid.json", fn conn ->
-        assert conn.params["domain-name"] == "domain.com"
-        response(conn, 200, order_id)
-      end)
+      stub(fn conn ->
+        case {conn.method, conn.request_path} do
+          {"GET", "/api/domains/orderid.json"} ->
+            assert conn.params["domain-name"] == "domain.com"
+            response(conn, 200, order_id)
 
-      Bypass.expect(bypass, "POST", "/api/domains/restore.json", fn conn ->
-        assert conn.query_params == %{
-                 "auth-userid" => "12345678",
-                 "api-key" => "abcdefg",
-                 "order-id" => to_string(order_id),
-                 "invoice-option" => "NoInvoice"
-               }
+          {"POST", "/api/domains/restore.json"} ->
+            assert conn.query_params == %{
+                     "auth-userid" => "12345678",
+                     "api-key" => "abcdefg",
+                     "order-id" => to_string(order_id),
+                     "invoice-option" => "NoInvoice"
+                   }
 
-        response(conn, 200, %{
-          "description" => "domain.com",
-          "entityid" => 12_121_212,
-          "eaqid" => 1_111_111,
-          "actiontypedesc" => "restore",
-          "actionstatus" => "Success",
-          "actionstatusdesc" => "restored successfully",
-          "invoiceid" => "87654",
-          "sellingcurrencysymbol" => "USD",
-          "sellingamount" => "5.00",
-          "customerid" => "7123"
-        })
+            response(conn, 200, %{
+              "description" => "domain.com",
+              "entityid" => 12_121_212,
+              "eaqid" => 1_111_111,
+              "actiontypedesc" => "restore",
+              "actionstatus" => "Success",
+              "actionstatusdesc" => "restored successfully",
+              "invoiceid" => "87654",
+              "sellingcurrencysymbol" => "USD",
+              "sellingamount" => "5.00",
+              "customerid" => "7123"
+            })
+        end
       end)
 
       # XXX: based on https://cp.us2.net/kb/answer/760

@@ -8,6 +8,8 @@ defmodule Resellbiz.Application do
 
   @impl Application
   def start(_start_type, _start_args) do
+    Resellbiz.Telemetry.attach()
+
     children = [
       {Finch, name: Resellbiz.Finch},
       {Resellbiz.Throttle, [clean_period: :timer.minutes(10)]},

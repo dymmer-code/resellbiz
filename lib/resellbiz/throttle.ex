@@ -1,10 +1,9 @@
 defmodule Resellbiz.Throttle do
   @moduledoc """
-  The throttle middleware is responsible for checking the rate limit of the
-  Resellbiz API. If the rate limit is exceeded, the middleware will wait for a
-  certain amount of time before trying again.
+  A Req request step responsible for checking the rate limit of the
+  Resellbiz API. If the rate limit is exceeded, it waits for a certain
+  amount of time before trying again.
   """
-  @behaviour Tesla.Middleware
   require Logger
 
   use Hammer, backend: Hammer.Atomic
@@ -35,12 +34,17 @@ defmodule Resellbiz.Throttle do
     end
   end
 
-  @impl Tesla.Middleware
-  @doc false
-  def call(env, next, _options) do
+  @doc """
+  Req request step: call/1 (no `next`/`options` -- request steps run before
+  the request is dispatched, not around it like Tesla middleware) either
+  returns the request unchanged, or short-circuits with
+  `{request, %Resellbiz.OverloadedError{}}` when the rate limit couldn't be
+  satisfied after retrying.
+  """
+  def call(request) do
     case check_throttle() do
-      :ok -> Tesla.run(env, next)
-      {:error, :overloaded} -> {:error, :overloaded}
+      :ok -> request
+      {:error, :overloaded} -> {request, %Resellbiz.OverloadedError{}}
     end
   end
 end

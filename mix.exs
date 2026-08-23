@@ -26,14 +26,14 @@ defmodule Resellbiz.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:tesla, "~> 1.9"},
+      {:req, "~> 0.5"},
+      {:plug, "~> 1.0", only: :test},
       {:finch, "~> 0.17"},
       {:countries, "~> 1.6"},
       {:decimal, "~> 2.3"},
       {:typed_ecto_schema, "~> 0.4"},
       {:ecto, "~> 3.9"},
       {:hammer, "~> 7.0"},
-      {:bypass, "~> 2.1", only: :test},
 
       # only for dev
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},

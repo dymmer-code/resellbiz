@@ -7,28 +7,17 @@ defmodule Resellbiz.Customer do
   alias Resellbiz.Customer.Details
   alias Resellbiz.Customer.Search
 
-  defp client do
-    Tesla.client(middleware(), adapter())
-  end
+  defp client, do: Resellbiz.Client.new("/api/customers")
 
-  defp middleware do
-    [
-      Resellbiz.Throttle,
-      {Tesla.Middleware.Logger,
-       format: "$method /api/customers$url?$query ===> $status / time=$time", log_level: :debug},
-      {Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/customers"},
-      {Tesla.Middleware.Query,
-       "auth-userid": Application.get_env(:resellbiz, :reseller_id),
-       "api-key": Application.get_env(:resellbiz, :api_key)},
-      Tesla.Middleware.JSON
-    ]
-  end
+  defp get(uri, opts), do: Req.get(client(), request_opts(uri, opts))
 
-  defp adapter do
-    {Tesla.Adapter.Finch, name: Resellbiz.Finch}
+  # Every call site in this module passes its extra query params as `query:`
+  # (the Tesla-era name) -- translated here to Req's `params:` option so none
+  # of them needed to change when this module moved off Tesla.
+  defp request_opts(uri, opts) do
+    {query, opts} = Keyword.pop(opts, :query, [])
+    Keyword.merge(opts, url: uri, params: query)
   end
-
-  defp get(uri, opts), do: Tesla.get(client(), uri, opts)
 
   @default_no_of_records 25
 

@@ -8,28 +8,9 @@ defmodule Resellbiz.Product do
   alias Resellbiz.Product.Details
   alias Resellbiz.Product.Prices
 
-  defp client do
-    Tesla.client(middleware(), adapter())
-  end
+  defp client, do: Resellbiz.Client.new("/api/products")
 
-  defp middleware do
-    [
-      Resellbiz.Throttle,
-      {Tesla.Middleware.Logger,
-       format: "$method /api/products$url?$query ===> $status / time=$time", log_level: :debug},
-      {Tesla.Middleware.BaseUrl, Application.get_env(:resellbiz, :url) <> "/api/products"},
-      {Tesla.Middleware.Query,
-       "auth-userid": Application.get_env(:resellbiz, :reseller_id),
-       "api-key": Application.get_env(:resellbiz, :api_key)},
-      Tesla.Middleware.JSON
-    ]
-  end
-
-  defp adapter do
-    {Tesla.Adapter.Finch, name: Resellbiz.Finch}
-  end
-
-  defp get(uri), do: Tesla.get(client(), uri)
+  defp get(uri), do: Req.get(client(), url: uri)
 
   @doc """
   Fetches the product details from the Resellbiz API.
