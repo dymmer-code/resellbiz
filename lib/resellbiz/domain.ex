@@ -232,6 +232,50 @@ defmodule Resellbiz.Domain do
     end
   end
 
+  @doc """
+  Enable or disable WHOIS Privacy Protection for the domain. Not supported
+  for every TLD -- see `Resellbiz.Product.Details.privacy_protection_allowed?`
+  before exposing this to a customer.
+
+  Raises a (possibly zero-priced, depending on the reseller's own price list
+  for Privacy Protection on that TLD) invoice every time it's called, per
+  https://cp.us2.net/kb/answer/778 -- same as `restore/1` already does, the
+  resulting `Resellbiz.Domain.Action` carries `invoice_id`/`selling_price`
+  for that invoice.
+  """
+  def set_privacy(domain_name, enabled, reason \\ "Domain owner request")
+
+  def set_privacy(domain_name, enabled, reason)
+      when is_binary(domain_name) and is_boolean(enabled) do
+    with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
+      set_privacy(order_id, enabled, reason)
+    end
+  end
+
+  def set_privacy(order_id, enabled, reason)
+      when is_integer(order_id) and is_boolean(enabled) do
+    do_set_privacy("order-id": order_id, "protect-privacy": enabled, reason: reason)
+  end
+
+  defp do_set_privacy(query_params) when is_list(query_params) do
+    case post("/modify-privacy-protection.json", "", query: query_params) do
+      {:ok, %_{status: 200, body: %{"eaqid" => _}} = response} ->
+        {:ok, Action.normalize(response.body)}
+
+      {:ok, %_{body: %{"status" => "Failed"}}} ->
+        {:error, "Domain not found or unknown error happened."}
+
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   def modify_ns(domain_name, ns) when is_binary(domain_name) and is_list(ns) do
     with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
       modify_ns(order_id, ns)
