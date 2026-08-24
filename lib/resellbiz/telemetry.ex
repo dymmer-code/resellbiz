@@ -14,10 +14,17 @@ defmodule Resellbiz.Telemetry do
 
   @events [[:finch, :request, :stop], [:finch, :request, :exception]]
 
+  @doc """
+  Attaches this module's `handle_event/4` to the Finch request-lifecycle events.
+  """
   def attach do
     :telemetry.attach_many(__MODULE__, @events, &__MODULE__.handle_event/4, nil)
   end
 
+  @doc """
+  Handles a `[:finch, :request, :stop | :exception]` event by logging the
+  request. Ignores events from any other Finch pool.
+  """
   def handle_event(
         [:finch, :request, :stop],
         measurements,

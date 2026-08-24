@@ -4,7 +4,7 @@ defmodule Resellbiz.MixProject do
   def project do
     [
       app: :resellbiz,
-      version: "0.1.1",
+      version: "0.1.2",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -28,9 +28,8 @@ defmodule Resellbiz.MixProject do
     [
       {:req, "~> 0.5"},
       {:plug, "~> 1.0", only: :test},
-      {:finch, "~> 0.17"},
       {:countries, "~> 1.6"},
-      {:decimal, "~> 2.3"},
+      {:decimal, "~> 3.0"},
       {:typed_ecto_schema, "~> 0.4"},
       {:ecto, "~> 3.9"},
       {:hammer, "~> 7.0"},
