@@ -19,6 +19,27 @@ defmodule Resellbiz.ProductTest do
     end
   end
 
+  describe "list_privacy_protection_cost/0" do
+    test "reads the flat top-level privacy_protection key" do
+      stub(fn conn ->
+        assert {conn.method, conn.request_path} ==
+                 {"GET", "/api/products/reseller-cost-price.json"}
+
+        response(conn, 200, Map.put(product_list_json_stub(), "privacy_protection", "1.65"))
+      end)
+
+      assert {:ok, Decimal.new("1.65")} == Product.list_privacy_protection_cost()
+    end
+
+    test "returns an error when the key is missing" do
+      stub(fn conn ->
+        response(conn, 200, product_list_json_stub())
+      end)
+
+      assert {:error, :not_found} == Product.list_privacy_protection_cost()
+    end
+  end
+
   defp product_list_struct_stub do
     [
       %Resellbiz.Product.Details{

@@ -22,6 +22,10 @@ defmodule Resellbiz.Product.Cache do
     GenServer.call(__MODULE__, {:get_prices_by_tld, tld})
   end
 
+  def get_privacy_protection_cost do
+    GenServer.call(__MODULE__, :get_privacy_protection_cost)
+  end
+
   @impl GenServer
   def init([]) do
     state = %{details: %{}, prices: %{}}
@@ -39,13 +43,15 @@ defmodule Resellbiz.Product.Cache do
 
     with [_ | _] = details <- Resellbiz.Product.list_product_details(),
          Logger.info("populating cache with prices"),
-         [_ | _] = prices <- Resellbiz.Product.list_product_reseller_cost_prices() do
+         [_ | _] = prices <- Resellbiz.Product.list_product_reseller_cost_prices(),
+         {:ok, privacy_protection_cost} <- Resellbiz.Product.list_privacy_protection_cost() do
       Logger.info("cache ready")
       timeout = Application.get_env(:resellbiz, :refresh_interval_ms, @default_refresh_interval)
 
       state
       |> Map.put(:details, details)
       |> Map.put(:prices, prices)
+      |> Map.put(:privacy_protection_cost, privacy_protection_cost)
       |> Map.put(:timestamp, NaiveDateTime.utc_now())
       |> refresh(timeout)
     else
@@ -90,6 +96,14 @@ defmodule Resellbiz.Product.Cache do
       {:reply, {:ok, prices}, state}
     else
       _ -> {:reply, {:error, :notfound}, state}
+    end
+  end
+
+  @impl GenServer
+  def handle_call(:get_privacy_protection_cost, _from, state) do
+    case Map.fetch(state, :privacy_protection_cost) do
+      {:ok, cost} -> {:reply, {:ok, cost}, state}
+      :error -> {:reply, {:error, :notfound}, state}
     end
   end
 end
