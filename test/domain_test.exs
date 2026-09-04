@@ -154,4 +154,70 @@ defmodule Resellbiz.DomainTest do
                {:error, "Privacy Protection not supported for this TLD"}
     end
   end
+
+  describe "modify_contact" do
+    test "re-points a domain's registrant/admin/tech/billing contacts at new contact ids" do
+      order_id = 84_698_661
+
+      stub(fn conn ->
+        case {conn.method, conn.request_path} do
+          {"GET", "/api/domains/orderid.json"} ->
+            assert conn.params["domain-name"] == "domain.com"
+            response(conn, 200, order_id)
+
+          {"POST", "/api/domains/modify-contact.json"} ->
+            assert conn.query_params == %{
+                     "auth-userid" => "12345678",
+                     "api-key" => "abcdefg",
+                     "order-id" => to_string(order_id),
+                     "reg-contact-id" => "111",
+                     "admin-contact-id" => "222",
+                     "tech-contact-id" => "333",
+                     "billing-contact-id" => "444"
+                   }
+
+            response(conn, 200, %{
+              "description" => "domain.com",
+              "entityid" => 12_121_212,
+              "eaqid" => 1_111_111,
+              "actiontypedesc" => "modify-contact",
+              "actionstatus" => "Success",
+              "actionstatusdesc" => "Contact details updated successfully",
+              "invoiceid" => "0",
+              "sellingcurrencysymbol" => "USD",
+              "sellingamount" => "0.00",
+              "customerid" => "7123"
+            })
+        end
+      end)
+
+      assert {:ok, %Resellbiz.Domain.Action{action_status: :success}} =
+               Resellbiz.Domain.modify_contact("domain.com", [111, 222, 333, 444])
+    end
+
+    test "returns the error message when the provider rejects the request" do
+      order_id = 84_698_661
+
+      stub(fn conn ->
+        case {conn.method, conn.request_path} do
+          {"GET", "/api/domains/orderid.json"} ->
+            response(conn, 200, order_id)
+
+          {"POST", "/api/domains/modify-contact.json"} ->
+            response(conn, 200, %{
+              "status" => "ERROR",
+              "message" => "ContactId is not registered by you"
+            })
+        end
+      end)
+
+      assert Resellbiz.Domain.modify_contact("domain.com", [111, 222, 333, 444]) ==
+               {:error, "ContactId is not registered by you"}
+    end
+
+    test "rejects a contacts list that isn't exactly 4 ids" do
+      assert Resellbiz.Domain.modify_contact("domain.com", [111, 222]) ==
+               {:error, :invalid_contacts}
+    end
+  end
 end

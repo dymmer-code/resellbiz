@@ -304,6 +304,56 @@ defmodule Resellbiz.Domain do
   end
 
   @doc """
+  Re-points a domain's registrant/admin/tech/billing contacts at new
+  contact ids (each already created via `Resellbiz.Contact.add/1`).
+
+  ResellerClub/Resell.biz (the platform this client talks to) doesn't
+  support editing a contact's fields in place -- deprecated per ICANN's
+  IRTP policy. The documented way to change a domain's contact details is
+  this: create a brand new contact record, then re-point the domain's
+  order at it via this endpoint. `contacts` must be exactly 4 contact ids,
+  in the same [owner, admin, tech, billing] order `register/4` uses --
+  the registrant slot is named `reg-contact-id` here (not
+  `owner-contact-id` as in `register.json`), a naming quirk of this
+  specific endpoint, not a typo.
+  """
+  def modify_contact(_domain, contacts) when not is_list(contacts) or length(contacts) != 4 do
+    {:error, :invalid_contacts}
+  end
+
+  def modify_contact(domain_name, contacts) when is_binary(domain_name) do
+    with {:ok, order_id} <- get_order_id_by_domain(domain_name) do
+      modify_contact(order_id, contacts)
+    end
+  end
+
+  def modify_contact(order_id, [owner, admin, tech, billing]) when is_integer(order_id) do
+    do_modify_contact(
+      "order-id": order_id,
+      "reg-contact-id": owner,
+      "admin-contact-id": admin,
+      "tech-contact-id": tech,
+      "billing-contact-id": billing
+    )
+  end
+
+  defp do_modify_contact(query_params) do
+    case post("/modify-contact.json", "", query: query_params) do
+      {:ok, %_{status: 200, body: %{"eaqid" => _}} = response} ->
+        {:ok, Action.normalize(response.body)}
+
+      {:ok, %_{body: %{"status" => "ERROR", "message" => message}}} ->
+        {:error, message}
+
+      {:ok, %_{body: %{"status" => "error", "error" => message}}} ->
+        {:error, message}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
   Register a domain. The domain name should be in the format `name.tld`.
   The years should be the number of years the domain should be registered for,
   depending on the TLD the number of the years could be between 1 and 10 or it
