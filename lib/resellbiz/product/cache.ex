@@ -33,7 +33,7 @@ defmodule Resellbiz.Product.Cache do
     if Application.get_env(:resellbiz, :auto_refresh, true) do
       {:ok, Map.put(state, :timestamp, NaiveDateTime.utc_now()), {:continue, :refresh}}
     else
-      {:ok, %{}}
+      {:ok, state}
     end
   end
 
