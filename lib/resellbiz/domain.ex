@@ -119,13 +119,17 @@ defmodule Resellbiz.Domain do
   - `ns` is the list of name servers to use.
   - `contacts` is the list of contacts to be in use as owner, admin, tech,
     and billing.
+  - `opts` accepts `purchase_privacy: true` to buy WHOIS Privacy
+    Protection together with the transfer.
   """
-  def transfer(_domain_name, _authcode, _years, _ns, contacts)
+  def transfer(domain_name, authcode, ns, contacts, opts \\ [])
+
+  def transfer(_domain_name, _authcode, _ns, contacts, _opts)
       when not is_list(contacts) or length(contacts) != 4 do
     {:error, :invalid_contacts}
   end
 
-  def transfer(domain_name, authcode, ns, [owner, admin, tech, billing] = _contacts) do
+  def transfer(domain_name, authcode, ns, [owner, admin, tech, billing] = _contacts, opts) do
     with [_base_domain, tld] <- String.split(domain_name, ".", parts: 2),
          {:ok, details} <- ProductCache.get_details_by_tld(tld) do
       %{
@@ -136,7 +140,8 @@ defmodule Resellbiz.Domain do
         owner_contact_id: owner,
         admin_contact_id: admin,
         tech_contact_id: tech,
-        billing_contact_id: billing
+        billing_contact_id: billing,
+        purchase_privacy?: Keyword.get(opts, :purchase_privacy, false)
       }
       |> Transfer.changeset(details)
       |> case do
@@ -368,13 +373,18 @@ defmodule Resellbiz.Domain do
   - Admin. The administrative contact for the domain.
   - Tech. The technical contact for the domain.
   - Billing. The contact for billing purposes.
+
+  `opts` accepts `purchase_privacy: true` to buy WHOIS Privacy Protection
+  together with the registration.
   """
-  def register(_name, _years, _ns, contacts)
+  def register(name, years, ns, contacts, opts \\ [])
+
+  def register(_name, _years, _ns, contacts, _opts)
       when not is_list(contacts) or length(contacts) != 4 do
     {:error, :invalid_contacts}
   end
 
-  def register(name, years, ns, [owner, admin, tech, billing] = _contacts) do
+  def register(name, years, ns, [owner, admin, tech, billing] = _contacts, opts) do
     with [_base_domain, tld] <- String.split(name, ".", parts: 2),
          {:ok, details} <- ProductCache.get_details_by_tld(tld) do
       %{
@@ -385,7 +395,8 @@ defmodule Resellbiz.Domain do
         owner_contact_id: owner,
         admin_contact_id: admin,
         tech_contact_id: tech,
-        billing_contact_id: billing
+        billing_contact_id: billing,
+        purchase_privacy?: Keyword.get(opts, :purchase_privacy, false)
       }
       |> Register.changeset(details)
       |> case do
@@ -421,24 +432,28 @@ defmodule Resellbiz.Domain do
   of years, and the expiration date and time for the domain.
 
   Note that using the `info/1` you can retrieve the `expiration_datetime`.
+
+  `opts` accepts `purchase_privacy: true` to renew WHOIS Privacy Protection
+  together with the domain.
   """
-  def renew(domain_name, years, expiration_datetime) when is_binary(domain_name) do
+  def renew(domain_name, years, expiration_datetime, opts \\ []) when is_binary(domain_name) do
     with [_base_domain, tld] <- String.split(domain_name, ".", parts: 2),
          {:ok, tld_details} <- ProductCache.get_details_by_tld(tld),
          {:ok, order_id} <- get_order_id_by_domain(domain_name) do
-      renew(order_id, years, expiration_datetime, tld_details)
+      do_renew(order_id, years, expiration_datetime, tld_details, opts)
     else
       {:error, _} = error -> error
       _ -> {:error, :invalid_domain_name}
     end
   end
 
-  defp renew(order_id, years, expiration_datetime, tld_details) do
+  defp do_renew(order_id, years, expiration_datetime, tld_details, opts) do
     params =
       %{
         order_id: order_id,
         years: years,
-        expiration_datetime: expiration_datetime
+        expiration_datetime: expiration_datetime,
+        purchase_privacy?: Keyword.get(opts, :purchase_privacy, false)
       }
 
     with {:ok, query_params} <- Renew.changeset(params, tld_details),
