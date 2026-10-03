@@ -29,7 +29,7 @@ defmodule Resellbiz.Domain.Renew do
       embed_as: :dumped
     )
 
-    field(:purchase_privacy?, :boolean, default: false, source: :"purcharse-privacy")
+    field(:purchase_privacy?, :boolean, default: false, source: :"purchase-privacy")
     field(:auto_renew?, :boolean, default: false, source: :"auto-renew")
   end
 
