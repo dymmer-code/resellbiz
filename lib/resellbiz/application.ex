@@ -1,8 +1,8 @@
 defmodule Resellbiz.Application do
   @moduledoc """
   The application module has the mission to start a supervisor to manage the
-  product cache. At the moment, the product cache is the only process that
-  needs to be supervised.
+  product cache, and the task supervisor where the cache fetches its data
+  without blocking the lookups.
   """
   use Application
 
@@ -13,6 +13,7 @@ defmodule Resellbiz.Application do
     children = [
       {Finch, name: Resellbiz.Finch},
       {Resellbiz.Throttle, [clean_period: :timer.minutes(10)]},
+      {Task.Supervisor, name: Resellbiz.TaskSupervisor},
       Resellbiz.Product.Cache
     ]
 
