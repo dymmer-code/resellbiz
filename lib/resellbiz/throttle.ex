@@ -8,29 +8,40 @@ defmodule Resellbiz.Throttle do
 
   use Hammer, backend: Hammer.Atomic
 
-  @throttle_tries Application.compile_env(:resellbiz, :tries, 3)
-  @throttle_time_to_wait Application.compile_env(
-                           :resellbiz,
-                           :throttle_time_to_wait,
-                           :timer.seconds(1)
-                         )
   @times Application.compile_env(:resellbiz, :throttle_times_per_minute, 5)
+  @window :timer.minutes(1)
+  # A call that has to wait for the next window can take up to a minute.
+  @max_wait Application.compile_env(:resellbiz, :throttle_max_wait, :timer.seconds(65))
 
-  defp check_throttle(tries \\ @throttle_tries)
+  defp check_throttle do
+    case acquire("resellbiz:global", @times, @window, @max_wait) do
+      :ok ->
+        :ok
 
-  defp check_throttle(0) do
-    Logger.error("Resellbiz overloaded!")
-    {:error, :overloaded}
+      {:error, :overloaded} = error ->
+        Logger.error("Resellbiz overloaded!")
+        error
+    end
   end
 
-  defp check_throttle(tries) do
-    case hit("resellbiz:global", :timer.minutes(1), @times) do
+  @doc """
+  Takes one slot of `limit` per `window` milliseconds for `key`. When the
+  window is full it waits for it to free (the time `Hammer` reports) instead
+  of retrying a few times within seconds, which could never succeed while the
+  window lasts. Gives up with `{:error, :overloaded}` only if the wait would
+  go over `max_wait` milliseconds.
+  """
+  def acquire(key, limit, window, max_wait, waited \\ 0) do
+    case hit(key, window, limit) do
       {:allow, _count} ->
         :ok
 
-      {:deny, _limit} ->
-        Process.sleep(@throttle_time_to_wait)
-        check_throttle(tries - 1)
+      {:deny, retry_in} when waited + retry_in <= max_wait ->
+        Process.sleep(retry_in)
+        acquire(key, limit, window, max_wait, waited + retry_in)
+
+      {:deny, _retry_in} ->
+        {:error, :overloaded}
     end
   end
 
