@@ -157,6 +157,8 @@ defmodule Resellbiz.Domain.Info do
 
   @doc false
   def normalize(params) do
-    Ecto.embedded_load(__MODULE__, params, :json)
+    __MODULE__
+    |> Resellbiz.EctoHelpers.drop_unknown_enum_values(params)
+    |> then(&Ecto.embedded_load(__MODULE__, &1, :json))
   end
 end
