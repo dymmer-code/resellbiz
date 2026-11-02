@@ -10,8 +10,12 @@ defmodule Resellbiz.Domain.Action do
     failed: "Failed",
     success: "Success",
     pending: "Pending",
-    admin_approved: "AdminApproved"
+    admin_approved: "AdminApproved",
+    unknown: "Unknown"
   ]
+
+  # Codes the API answers with that mean one of the statuses above.
+  @action_status_aliases %{"STATUS_RP_TRANSFER_REQUEST_SENT" => "Pending"}
 
   @action_types [
     add_new_domain: "AddNewDomain",
@@ -55,6 +59,25 @@ defmodule Resellbiz.Domain.Action do
 
   @doc false
   def normalize(params) do
-    Ecto.embedded_load(__MODULE__, params, :json)
+    params
+    |> normalize_action_status()
+    |> then(&Ecto.embedded_load(__MODULE__, &1, :json))
   end
+
+  # The registrar has already acted when this answer arrives: a code that is
+  # not in the list must not raise, or the caller loses the answer.
+  defp normalize_action_status(%{"actionstatus" => status} = params) do
+    known = Keyword.values(@action_statuses)
+
+    status =
+      cond do
+        status in known -> status
+        Map.has_key?(@action_status_aliases, status) -> Map.fetch!(@action_status_aliases, status)
+        true -> "Unknown"
+      end
+
+    Map.put(params, "actionstatus", status)
+  end
+
+  defp normalize_action_status(params), do: params
 end
